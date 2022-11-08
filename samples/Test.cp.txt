@@ -1,0 +1,107 @@
+Classfile /home/xbkaishui/share/jdk/test/Test.class
+  Last modified Nov 7, 2022; size 627 bytes
+  MD5 checksum 03d57169c1ae3824f7634b6b9698a053
+  Compiled from "Test.java"
+public class Test
+  SourceFile: "Test.java"
+  minor version: 0
+  major version: 51
+  flags: ACC_PUBLIC, ACC_SUPER
+Constant pool:
+   #1 = Methodref          #9.#26         //  java/lang/Object."<init>":()V
+   #2 = Fieldref           #5.#27         //  Test.a:I
+   #3 = String             #28            //  Hello World!
+   #4 = Fieldref           #5.#29         //  Test.s:Ljava/lang/String;
+   #5 = Class              #30            //  Test
+   #6 = Methodref          #5.#26         //  Test."<init>":()V
+   #7 = Methodref          #31.#32        //  java/lang/Integer.valueOf:(I)Ljava/lang/Integer;
+   #8 = Fieldref           #5.#33         //  Test.si:Ljava/lang/Integer;
+   #9 = Class              #34            //  java/lang/Object
+  #10 = Utf8               a
+  #11 = Utf8               I
+  #12 = Utf8               si
+  #13 = Utf8               Ljava/lang/Integer;
+  #14 = Utf8               s
+  #15 = Utf8               Ljava/lang/String;
+  #16 = Utf8               <init>
+  #17 = Utf8               ()V
+  #18 = Utf8               Code
+  #19 = Utf8               LineNumberTable
+  #20 = Utf8               main
+  #21 = Utf8               ([Ljava/lang/String;)V
+  #22 = Utf8               test
+  #23 = Utf8               <clinit>
+  #24 = Utf8               SourceFile
+  #25 = Utf8               Test.java
+  #26 = NameAndType        #16:#17        //  "<init>":()V
+  #27 = NameAndType        #10:#11        //  a:I
+  #28 = Utf8               Hello World!
+  #29 = NameAndType        #14:#15        //  s:Ljava/lang/String;
+  #30 = Utf8               Test
+  #31 = Class              #35            //  java/lang/Integer
+  #32 = NameAndType        #36:#37        //  valueOf:(I)Ljava/lang/Integer;
+  #33 = NameAndType        #12:#13        //  si:Ljava/lang/Integer;
+  #34 = Utf8               java/lang/Object
+  #35 = Utf8               java/lang/Integer
+  #36 = Utf8               valueOf
+  #37 = Utf8               (I)Ljava/lang/Integer;
+{
+  public int a;
+    flags: ACC_PUBLIC
+
+  static java.lang.Integer si;
+    flags: ACC_STATIC
+
+  java.lang.String s;
+    flags: 
+
+  public Test();
+    flags: ACC_PUBLIC
+    Code:
+      stack=2, locals=1, args_size=1
+         0: aload_0       
+         1: invokespecial #1                  // Method java/lang/Object."<init>":()V
+         4: aload_0       
+         5: iconst_3      
+         6: putfield      #2                  // Field a:I
+         9: aload_0       
+        10: ldc           #3                  // String Hello World!
+        12: putfield      #4                  // Field s:Ljava/lang/String;
+        15: return        
+      LineNumberTable:
+        line 1: 0
+        line 3: 4
+        line 5: 9
+
+  public static void main(java.lang.String[]);
+    flags: ACC_PUBLIC, ACC_STATIC
+    Code:
+      stack=2, locals=2, args_size=1
+         0: new           #5                  // class Test
+         3: dup           
+         4: invokespecial #6                  // Method "<init>":()V
+         7: astore_1      
+         8: aload_1       
+         9: bipush        8
+        11: putfield      #2                  // Field a:I
+        14: bipush        9
+        16: invokestatic  #7                  // Method java/lang/Integer.valueOf:(I)Ljava/lang/Integer;
+        19: putstatic     #8                  // Field si:Ljava/lang/Integer;
+        22: return        
+      LineNumberTable:
+        line 8: 0
+        line 9: 8
+        line 10: 14
+        line 11: 22
+
+  static {};
+    flags: ACC_STATIC
+    Code:
+      stack=1, locals=0, args_size=0
+         0: bipush        6
+         2: invokestatic  #7                  // Method java/lang/Integer.valueOf:(I)Ljava/lang/Integer;
+         5: putstatic     #8                  // Field si:Ljava/lang/Integer;
+         8: return        
+      LineNumberTable:
+        line 4: 0
+}
