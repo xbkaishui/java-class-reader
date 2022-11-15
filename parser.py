@@ -10,6 +10,23 @@ import json
 #define JAVA_8_VERSION                    52
 #define JAVA_7_VERSION                    51
 
+TAG_Utf8_Info = 1
+TAG_Integer_Info = 3
+TAG_Float_Info = 4
+TAG_Long_Info = 5
+TAG_Double_Info = 6
+TAG_Class_Info = 7
+TAG_String_Info = 8
+TAG_Fieldref_Info = 9
+TAG_Methodref_Info = 10
+TAG_Interface_MethodRef_Info = 11
+TAG_NameAndType_Info = 12
+
+tag_dict = {TAG_Utf8_Info: "Utf8_Info", TAG_Integer_Info: "Integer_Info", TAG_Float_Info: "Float_Info", 
+            TAG_Long_Info: "Long_Info", TAG_Double_Info: "Double_Info", TAG_Class_Info: "Class_Info",
+            TAG_String_Info: "String_Info", TAG_Fieldref_Info: "Fieldref_Info", TAG_Methodref_Info: "Methodref_Info",
+            TAG_Interface_MethodRef_Info: "Interface_MethodRef_Info", TAG_NameAndType_Info: "NameAndType_Info"
+            }
 
 class JClass(object):
     
@@ -99,23 +116,35 @@ class ClassFileParser(object):
         start = self.increment_position(2);
         for i in range(const_pool_size):
             tag, = struct.unpack("!B", self.get_bytes(start, start + 1))
-            logger.info("tag {}", tag)
+            logger.info("tag {}", tag_dict[tag])
             start = self.increment_position(1);
-            if tag == 10 or tag == 12 or tag == 9:
+            if tag == TAG_Methodref_Info or tag == TAG_NameAndType_Info or tag == TAG_Fieldref_Info:
                 class_index, name_and_type_index = struct.unpack("!HH", self.get_bytes(start, start + 4))
                 logger.info("idx {} class idx {}, name_and_type_index {}", i+1, class_index, name_and_type_index);
                 const_pool.add_constant_info(i+1, (tag, class_index, name_and_type_index))
+                start = self.increment_position(4);
+            elif tag == TAG_String_Info:
+                string_idx, = struct.unpack("!H", self.get_bytes(start, start + 2))
+                start = self.increment_position(2);
+                logger.info("idx {} string_idx {}", i + 1, string_idx);
+                const_pool.add_constant_info(i+1, (tag, string_idx))
+            elif tag == TAG_Class_Info:
+                string_idx, = struct.unpack("!H", self.get_bytes(start, start + 2))
+                start = self.increment_position(2);
+                logger.info("idx {} class info idx {}", i + 1, string_idx);
+                const_pool.add_constant_info(i+1, (tag, string_idx))
+            elif tag == TAG_Utf8_Info:
+                length, =struct.unpack("!H", self.get_bytes(start, start + 2))
+                start = self.increment_position(2);
+                data, = struct.unpack('{length}s'.format(length=length), self.get_bytes(start, start + length))
+                logger.info("read utf8 string len {} data {}", length, data)
+                start = self.increment_position(length);
+                const_pool.add_constant_info(i+1, (tag, data))
+            else:
+                logger.info("ignore tag {}", tag)
                 ...
-            elif tag == 8:
-                ...
-            elif tag == 7:
-                ...
-            elif tag == 1:
-                ...
-            start = self.increment_position(4);
-            ...
         
-        ...
+        logger.info("after read const pool current position {}", self._position)
         
     def read_methods(self):
         ...
