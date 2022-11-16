@@ -11,14 +11,18 @@ import json
 #define JAVA_7_VERSION                    51
 
 ACC_PUBLIC = 0x0001
+ACC_PRIVATE = 0x0002
+ACC_PROTECTED = 0x0004
+ACC_STATIC = 0x0008
 ACC_FINAL = 0x0010
 ACC_SUPER = 0x0020
+ACC_VOLATILE = 0x0040
 ACC_INTERFACE = 0x0200
 ACC_ABSTRACT = 0x0400
 ACC_SYNTHETIC = 0x1000
 ACC_ANNOTATION = 0x2000
 ACC_ENUM = 0x4000
-flag_dict = {ACC_PUBLIC: "PUBLIC", ACC_FINAL: "FINAL", ACC_SUPER: "SUPER", 
+flag_dict = {ACC_PUBLIC: "PUBLIC", ACC_PRIVATE: "PRIVATE", ACC_STATIC: "STATIC", ACC_PROTECTED: "PROTECTED", ACC_FINAL: "FINAL", ACC_SUPER: "SUPER", 
             ACC_INTERFACE: "INTERFACE", ACC_ABSTRACT: "ABSTRACT", ACC_SYNTHETIC: "SYNTHETIC",
             ACC_ANNOTATION: "ANNOTATION", ACC_ENUM: "ENUM"}
 
@@ -96,6 +100,10 @@ class ClassFileParser(object):
         self.read_access_flags()
         # read class info
         self.read_class_info()
+        # read interface info
+        self.read_interface_info()
+        # read field info
+        self.read_field_info()
 
         return self.jclass
     
@@ -168,32 +176,65 @@ class ClassFileParser(object):
         access_flag, = struct.unpack("!H", self.get_bytes(start, start + 2))
         logger.info("access flag {} desc {}", access_flag, self.get_access_flag_desc(access_flag))
         start = self.increment_position(2)
+        return access_flag
     
     def read_class_info(self):
         start = self._position
         this_class_idx, = struct.unpack("!H", self.get_bytes(start, start + 2))
-        class_constat = self.const_pool.get_constant_info(this_class_idx)
-        string_info = self.const_pool.get_constant_info(class_constat[1])
-        logger.info("this class idx {} name {}", this_class_idx, string_info)
+        this_string_info = self.get_const_pool_string(this_class_idx)
+        logger.info("this class idx {} name {}", this_class_idx, this_string_info)
         start = self.increment_position(2)
         
         super_class_idx, = struct.unpack("!H", self.get_bytes(start, start + 2))
-        super_class_constat = self.const_pool.get_constant_info(super_class_idx)
-        super_string_info = self.const_pool.get_constant_info(super_class_constat[1])
+        super_string_info = self.get_const_pool_string(super_class_idx)
         logger.info("parent class idx {} name {}", super_class_idx, super_string_info)
         start = self.increment_position(2)
 
 
     def get_access_flag_desc(self, access_flag):
         desc = []
-        flags = [ACC_PUBLIC, ACC_FINAL, ACC_SUPER, ACC_INTERFACE, ACC_ABSTRACT, ACC_SYNTHETIC, ACC_ANNOTATION, ACC_ENUM]
-        for flag in flags:
-            if flag & access_flag == flag:
+        for flag in flag_dict.keys():
+            if (flag & access_flag) == flag:
                 desc.append(flag_dict[flag])
             
         return ', '.join(desc)
-        
-    def read_methods(self):
+     
+    def read_interface_info(self):
+        start = self._position
+        interface_cnt, = struct.unpack("!H", self.get_bytes(start, start + 2))
+        start = self.increment_position(2)
+        logger.info("interface count {}", interface_cnt)  
+    
+    def get_const_pool_string(self, idx):
+        class_constat = self.const_pool.get_constant_info(idx)
+        logger.info("idx {}, const {}", idx, class_constat)
+        if class_constat[0] == TAG_Utf8_Info:
+            return class_constat[1]
+        else :
+            utf8_info = self.const_pool.get_constant_info(class_constat[1])
+            assert utf8_info[0] == TAG_Utf8_Info
+            return utf8_info[1]
+         
+    def read_field_info(self):
+        start = self._position
+        field_cnt, = struct.unpack("!H", self.get_bytes(start, start + 2))
+        start = self.increment_position(2)
+        logger.info("field count {}", field_cnt)
+        for idx in range(field_cnt):
+            self.read_access_flags()
+            start = self._position
+            name_idx, = struct.unpack("!H", self.get_bytes(start, start + 2))
+            start = self.increment_position(2)
+            desc_idx, = struct.unpack("!H", self.get_bytes(start, start + 2))
+            logger.info("idx {} field name {}, field desc {}", idx, self.get_const_pool_string(name_idx), self.get_const_pool_string(desc_idx))
+            start = self.increment_position(2)
+            attribute_cnt = struct.unpack("!H", self.get_bytes(start, start + 2))
+            logger.info("idx {} attribute cnt {}", idx, attribute_cnt)
+            start = self.increment_position(2)
+            ...
+
+
+    def read_method_info(self):
         ...
         
     def read_table(self):
