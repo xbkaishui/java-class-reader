@@ -44,10 +44,22 @@ tag_dict = {TAG_Utf8_Info: "Utf8_Info", TAG_Integer_Info: "Integer_Info", TAG_Fl
             TAG_Interface_MethodRef_Info: "Interface_MethodRef_Info", TAG_NameAndType_Info: "NameAndType_Info"
             }
 
+class FieldInfo(object):
+    def __init__(self, idx, name, desc):
+        self.index = idx
+        self.name = name
+        self.desc = desc
+        ...
+        
 class JClass(object):
     
     def __init__(self):
         self.version = None
+        self.this_class = None
+        self.super_class = None
+        self.access_flag = 0
+        self.field_infos = []
+        self.const_pool = None
     
     def __str__(self):
         return json.dumps(self, default=lambda o: o.__dict__)
@@ -55,7 +67,8 @@ class JClass(object):
 
 class ConstantPool(object):
     
-    data_dict = {}
+    def __init__(self):
+        self.data_dict = {}
     
     def add_constant_info(self, idx, value):
         self.data_dict[idx] = value
@@ -67,7 +80,8 @@ class ConstantPool(object):
         return len(self.data_dict)
     
     def __str__(self):
-        return json.dumps(self, default=lambda o: o.__dict__)
+        return ""
+        # return json.dumps(self.data_dict.keys())
 
 class Utf8Info(object):
     len = 0
@@ -169,6 +183,7 @@ class ClassFileParser(object):
                 # todo implement
                 ...
         self.const_pool = const_pool
+        # self.jclass.const_pool = const_pool
         logger.info("after read const pool current position {}", self._position)
     
     def read_access_flags(self):
@@ -176,6 +191,7 @@ class ClassFileParser(object):
         access_flag, = struct.unpack("!H", self.get_bytes(start, start + 2))
         logger.info("access flag {} desc {}", access_flag, self.get_access_flag_desc(access_flag))
         start = self.increment_position(2)
+        self.jclass.access_flag = access_flag
         return access_flag
     
     def read_class_info(self):
@@ -189,7 +205,8 @@ class ClassFileParser(object):
         super_string_info = self.get_const_pool_string(super_class_idx)
         logger.info("parent class idx {} name {}", super_class_idx, super_string_info)
         start = self.increment_position(2)
-
+        self.jclass.this_class = this_string_info
+        self.jclass.super_class = super_string_info
 
     def get_access_flag_desc(self, access_flag):
         desc = []
@@ -209,17 +226,18 @@ class ClassFileParser(object):
         class_constat = self.const_pool.get_constant_info(idx)
         logger.info("idx {}, const {}", idx, class_constat)
         if class_constat[0] == TAG_Utf8_Info:
-            return class_constat[1]
+            return class_constat[1].decode("utf-8") 
         else :
             utf8_info = self.const_pool.get_constant_info(class_constat[1])
             assert utf8_info[0] == TAG_Utf8_Info
-            return utf8_info[1]
+            return utf8_info[1].decode("utf-8") 
          
     def read_field_info(self):
         start = self._position
         field_cnt, = struct.unpack("!H", self.get_bytes(start, start + 2))
         start = self.increment_position(2)
         logger.info("field count {}", field_cnt)
+        field_infos = []
         for idx in range(field_cnt):
             self.read_access_flags()
             start = self._position
@@ -231,8 +249,10 @@ class ClassFileParser(object):
             attribute_cnt = struct.unpack("!H", self.get_bytes(start, start + 2))
             logger.info("idx {} attribute cnt {}", idx, attribute_cnt)
             start = self.increment_position(2)
+            field_infos.append(FieldInfo(idx, self.get_const_pool_string(name_idx), self.get_const_pool_string(desc_idx)))
             ...
 
+        self.jclass.field_infos = field_infos
 
     def read_method_info(self):
         ...
