@@ -10,6 +10,18 @@ import json
 #define JAVA_8_VERSION                    52
 #define JAVA_7_VERSION                    51
 
+ACC_PUBLIC = 0x0001
+ACC_FINAL = 0x0010
+ACC_SUPER = 0x0020
+ACC_INTERFACE = 0x0200
+ACC_ABSTRACT = 0x0400
+ACC_SYNTHETIC = 0x1000
+ACC_ANNOTATION = 0x2000
+ACC_ENUM = 0x4000
+flag_dict = {ACC_PUBLIC: "PUBLIC", ACC_FINAL: "FINAL", ACC_SUPER: "SUPER", 
+            ACC_INTERFACE: "INTERFACE", ACC_ABSTRACT: "ABSTRACT", ACC_SYNTHETIC: "SYNTHETIC",
+            ACC_ANNOTATION: "ANNOTATION", ACC_ENUM: "ENUM"}
+
 TAG_Utf8_Info = 1
 TAG_Integer_Info = 3
 TAG_Float_Info = 4
@@ -44,7 +56,7 @@ class ConstantPool(object):
     def add_constant_info(self, idx, value):
         self.data_dict[idx] = value
         
-    def get_string(self, idx):
+    def get_constant_info(self, idx):
         return self.data_dict[idx]
     
     def size(self):
@@ -80,6 +92,10 @@ class ClassFileParser(object):
         self.check_magic_version()
         # parse class file
         self.read_const_pool()
+        # read access_flags
+        self.read_access_flags()
+        # read class info
+        self.read_class_info()
 
         return self.jclass
     
@@ -142,9 +158,40 @@ class ClassFileParser(object):
                 const_pool.add_constant_info(i+1, (tag, data))
             else:
                 logger.info("ignore tag {}", tag)
+                # todo implement
                 ...
-        
+        self.const_pool = const_pool
         logger.info("after read const pool current position {}", self._position)
+    
+    def read_access_flags(self):
+        start = self._position
+        access_flag, = struct.unpack("!H", self.get_bytes(start, start + 2))
+        logger.info("access flag {} desc {}", access_flag, self.get_access_flag_desc(access_flag))
+        start = self.increment_position(2)
+    
+    def read_class_info(self):
+        start = self._position
+        this_class_idx, = struct.unpack("!H", self.get_bytes(start, start + 2))
+        class_constat = self.const_pool.get_constant_info(this_class_idx)
+        string_info = self.const_pool.get_constant_info(class_constat[1])
+        logger.info("this class idx {} name {}", this_class_idx, string_info)
+        start = self.increment_position(2)
+        
+        super_class_idx, = struct.unpack("!H", self.get_bytes(start, start + 2))
+        super_class_constat = self.const_pool.get_constant_info(super_class_idx)
+        super_string_info = self.const_pool.get_constant_info(super_class_constat[1])
+        logger.info("parent class idx {} name {}", super_class_idx, super_string_info)
+        start = self.increment_position(2)
+
+
+    def get_access_flag_desc(self, access_flag):
+        desc = []
+        flags = [ACC_PUBLIC, ACC_FINAL, ACC_SUPER, ACC_INTERFACE, ACC_ABSTRACT, ACC_SYNTHETIC, ACC_ANNOTATION, ACC_ENUM]
+        for flag in flags:
+            if flag & access_flag == flag:
+                desc.append(flag_dict[flag])
+            
+        return ', '.join(desc)
         
     def read_methods(self):
         ...
