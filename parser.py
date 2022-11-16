@@ -118,7 +118,10 @@ class ClassFileParser(object):
         self.read_interface_info()
         # read field info
         self.read_field_info()
-
+        # read method info
+        self.read_method_info()
+        # read attribue info
+        self.read_attribute_info()
         return self.jclass
     
     def get_bytes(self, start, end):
@@ -224,7 +227,7 @@ class ClassFileParser(object):
     
     def get_const_pool_string(self, idx):
         class_constat = self.const_pool.get_constant_info(idx)
-        logger.info("idx {}, const {}", idx, class_constat)
+        # logger.info("idx {}, const {}", idx, class_constat)
         if class_constat[0] == TAG_Utf8_Info:
             return class_constat[1].decode("utf-8") 
         else :
@@ -246,19 +249,116 @@ class ClassFileParser(object):
             desc_idx, = struct.unpack("!H", self.get_bytes(start, start + 2))
             logger.info("idx {} field name {}, field desc {}", idx, self.get_const_pool_string(name_idx), self.get_const_pool_string(desc_idx))
             start = self.increment_position(2)
-            attribute_cnt = struct.unpack("!H", self.get_bytes(start, start + 2))
+            attribute_cnt, = struct.unpack("!H", self.get_bytes(start, start + 2))
             logger.info("idx {} attribute cnt {}", idx, attribute_cnt)
             start = self.increment_position(2)
             field_infos.append(FieldInfo(idx, self.get_const_pool_string(name_idx), self.get_const_pool_string(desc_idx)))
             ...
 
         self.jclass.field_infos = field_infos
-
-    def read_method_info(self):
-        ...
+        logger.info("after read field info position {}", self._position)
         
-    def read_table(self):
-        ...
+    def read_method_info(self):
+        start = self._position
+        method_cnt, = struct.unpack("!H", self.get_bytes(start, start + 2))
+        start = self.increment_position(2)
+        logger.info("method count {}", method_cnt)
+        method_infos = []
+        for idx in range(method_cnt):
+            self.read_access_flags()
+            start = self._position
+            name_idx, = struct.unpack("!H", self.get_bytes(start, start + 2))
+            start = self.increment_position(2)
+            desc_idx, = struct.unpack("!H", self.get_bytes(start, start + 2))
+            logger.info("idx {} method name {}, method desc {}", idx, self.get_const_pool_string(name_idx), self.get_const_pool_string(desc_idx))
+            start = self.increment_position(2)
+            attribute_cnt, = struct.unpack("!H", self.get_bytes(start, start + 2))
+            logger.info("idx {} attribute cnt {}", idx, attribute_cnt)
+            start = self.increment_position(2)
+            if attribute_cnt > 0:
+                # start read attribute info
+                for attr_idx in range(attribute_cnt):
+                    attribute_type , = struct.unpack("!H", self.get_bytes(start, start + 2))
+                    start = self.increment_position(2)
+                    attribute_name = self.get_const_pool_string(attribute_type)
+                    logger.info("idx {} , attribute_type {} value {}", idx, attribute_type, attribute_name)
+                    
+                    if attribute_name == 'Code':
+                        # parse code attribute , 4 bytes length
+                        attribute_len , = struct.unpack("!I", self.get_bytes(start, start + 4))
+                        start = self.increment_position(4)
+                        max_stack, = struct.unpack("!H", self.get_bytes(start, start + 2))
+                        start = self.increment_position(2)
+                        max_locals, = struct.unpack("!H", self.get_bytes(start, start + 2))
+                        start = self.increment_position(2)
+                        code_len , = struct.unpack("!I", self.get_bytes(start, start + 4))
+                        start = self.increment_position(4)
+                        
+                        code, = struct.unpack('{length}s'.format(length=code_len), self.get_bytes(start, start + code_len))
+                        start = self.increment_position(code_len)
+                        logger.info("attribute_name {}, attribute_len {}, max_stack {}, max_locals {}, code_len {}, code {}", 
+                                    attribute_name, attribute_len, max_stack, max_locals, code_len, code)
+                        exception_table_len, = struct.unpack("!H", self.get_bytes(start, start + 2))
+                        start = self.increment_position(2)
+                        if exception_table_len > 0:
+                            # todo read exception info
+                            ...
+                        
+                        attributes_cnt, = struct.unpack("!H", self.get_bytes(start, start + 2))
+                        start = self.increment_position(2)
+                        logger.info("exception_table_len {}, attributes_cnt {}", exception_table_len, attributes_cnt)
+                        if attributes_cnt > 0:
+                            # todo read attributes
+                            for atr_idx in range(attributes_cnt):
+                                attribute_name_idx , = struct.unpack("!H", self.get_bytes(start, start + 2))
+                                attribute_name = self.get_const_pool_string(attribute_name_idx)
+                                start = self.increment_position(2)
+                                logger.info("attributes_idx {}, attribute_name {}", atr_idx, attribute_name)
+                                # read line number table
+                                if attribute_name == 'LineNumberTable':
+                                    attribute_len, = struct.unpack("!I", self.get_bytes(start, start + 4))
+                                    start = self.increment_position(4)
+                                    line_num_len, = struct.unpack("!H", self.get_bytes(start, start + 2))
+                                    start = self.increment_position(2)
+                                    logger.info("line num length {}", line_num_len)
+                                    for i in range(line_num_len):
+                                        start_pc, = struct.unpack("!H", self.get_bytes(start, start + 2))
+                                        start = self.increment_position(2)
+                                        line_num, = struct.unpack("!H", self.get_bytes(start, start + 2))
+                                        start = self.increment_position(2)
+                                        logger.info("line num: {}, start_pc {}", line_num, start_pc)
+                                else:
+                                    logger.warning("unkonw attribute name {}", attribute_name)
+                                ...
+                            ...
+                        ...
+                    else:
+                        logger.warning("unkonw attribute name {}", attribute_name)
+                ...
+            ...
+        
+        logger.info("after read method info position {}", self._position)
+
+        
+    def read_attribute_info(self):
+        start = self._position
+        attr_cnt, = struct.unpack("!H", self.get_bytes(start, start + 2))
+        start = self.increment_position(2)
+        logger.info("attr count {}", attr_cnt)
+        for i in range(attr_cnt):
+            attribute_name_idx, = struct.unpack("!H", self.get_bytes(start, start + 2))
+            start = self.increment_position(2)
+            attribute_name = self.get_const_pool_string(attribute_name_idx)
+            logger.info("attributes_idx {}, attribute_name {}", attribute_name_idx, attribute_name)
+            if attribute_name == 'SourceFile':
+                attribute_len, = struct.unpack("!I", self.get_bytes(start, start + 4))
+                logger.info("attribute_len {}", attribute_len)
+                start = self.increment_position(4)
+                sourcefile_idx, = struct.unpack("!H", self.get_bytes(start, start + 2))
+                start = self.increment_position(2)
+                logger.info("sourcefile_idx {} source file name {}", sourcefile_idx, self.get_const_pool_string(sourcefile_idx))
+                
+        logger.info("after read attribute info position {}", self._position)
         
 if __name__ == '__main__':
     parser = ClassFileParser()
